@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { anthropic, AI_MODEL } from "./anthropicClient";
 
 export interface FailureContext {
@@ -18,15 +20,23 @@ export interface FailureContext {
   };
 }
 
-export interface FailureExplanation {
-  explanation: string;
-  suggestedFix: string;
-  confidence: "high" | "medium" | "low";
-}
+const FailureExplanationSchema = z.object({
+  explanation: z
+    .string()
+    .describe(
+      "Specific root cause referencing the actual field, selector, status code, or value involved",
+    ),
+  suggestedFix: z.string().describe("Concrete, actionable fix"),
+  confidence: z.enum(["high", "medium", "low"]),
+});
+
+export type FailureExplanation = z.infer<typeof FailureExplanationSchema>;
+
+const TOOL_NAME = "report_failure_analysis";
+
+const jsonSchema = zodToJsonSchema(FailureExplanationSchema, TOOL_NAME).definitions![TOOL_NAME];
 
 const SYSTEM_PROMPT = `You are a senior SDET triaging automated test failures.
-Respond ONLY with raw JSON, no markdown fences, matching exactly this shape:
-{ "explanation": string, "suggestedFix": string, "confidence": "high"|"medium"|"low" }
 Be specific — reference the actual field, selector, status code, or value involved.`;
 
 export async function explainFailure(context: FailureContext): Promise<FailureExplanation> {
@@ -44,17 +54,27 @@ export async function explainFailure(context: FailureContext): Promise<FailureEx
       max_tokens: 500,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: buildPrompt(context) }],
+      tools: [
+        {
+          name: TOOL_NAME,
+          description: "Report the structured analysis of a test failure.",
+          input_schema: jsonSchema as any,
+          strict: true,
+        },
+      ],
+      tool_choice: { type: "tool", name: TOOL_NAME },
     });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    const raw = textBlock?.type === "text" ? textBlock.text : "{}";
-    const parsed = JSON.parse(raw);
+    const toolUse = response.content.find(
+      (block): block is Extract<typeof block, { type: "tool_use" }> => block.type === "tool_use",
+    );
 
-    return {
-      explanation: parsed.explanation ?? "No explanation returned.",
-      suggestedFix: parsed.suggestedFix ?? "No suggested fix returned.",
-      confidence: parsed.confidence ?? "medium",
-    };
+    if (!toolUse) {
+      throw new Error("Model did not return a tool_use block");
+    }
+
+    // Belt-and-suspenders: validate against the same Zod schema.
+    return FailureExplanationSchema.parse(toolUse.input);
   } catch (err) {
     return {
       explanation: `AI explanation failed: ${(err as Error).message}`,
