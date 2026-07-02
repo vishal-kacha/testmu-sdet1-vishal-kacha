@@ -1,8 +1,7 @@
+import "dotenv/config";
 import { defineConfig } from "vitest/config";
+import { AIFailureReporter } from "./src/AIFailureReporter";
 
 export default defineConfig({
-  test: {
-    globals: true,
-    testTimeout: 30000, // puppeteer tests need more time
-  },
+  test: { reporters: ["default", new AIFailureReporter()] },
 });

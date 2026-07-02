@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-07-02T19:38:16.926Z",
+  "failureCount": 2,
+  "entries": [
+    {
+      "testName": "Test Case API > creates a test case with the correct priority",
+      "filePath": "/home/user/Programming/testmu-sdet1-vishal-kacha/tests/api.test.ts",
+      "errorMessage": "expected 'P1' to be 'P2' // Object.is equality",
+      "aiExplanation": "The test expects the created test case to have priority 'P2', but the API response returned priority 'P1'. This means either the test's request payload sent 'P1' instead of 'P2', or the assertion is checking against a hardcoded 'P2' that doesn't match the actual payload used in the POST request to /posts.",
+      "aiSuggestedFix": "Check the test file at line 23 and the request body construction above it — ensure the payload sent in the POST request uses priority: 'P2' if that's the intended value, or update the assertion to expect 'P1' if 'P1' is the correct expected priority for this test case. Align the request payload and the assertion so they reference the same expected value (e.g., use a shared variable like `expectedPriority` for both the request body and the assertion).",
+      "aiConfidence": "high"
+    },
+    {
+      "testName": "Login Page > shows the dashboard heading after login",
+      "filePath": "/home/user/Programming/testmu-sdet1-vishal-kacha/tests/login.test.ts",
+      "errorMessage": "expected 'Example Domain' to be 'Welcome to your Dashboard' // Object.is equality",
+      "aiExplanation": "AI explanation failed: Unexpected token '`', \"```json\n{\n\"... is not valid JSON",
+      "aiSuggestedFix": "Review the raw error/stack trace manually.",
+      "aiConfidence": "low"
+    }
+  ]
+}
