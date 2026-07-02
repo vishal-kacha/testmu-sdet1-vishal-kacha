@@ -1,0 +1,489 @@
+{
+  "module": "REST API",
+  "generatedBy": "LLM-assisted (see prompts.md for exact prompts used)",
+  "testCases": [
+    {
+      "id": "API-TC-001",
+      "category": "Auth Token Validation",
+      "title": "API request with a valid auth token succeeds",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["User has authenticated and obtained a valid access token"],
+      "testData": {
+        "endpoint": "GET /api/v1/test-runs",
+        "authHeader": "Bearer <valid_token>"
+      },
+      "steps": [
+        "Obtain a valid access token via login/auth endpoint",
+        "Send a GET request to a protected endpoint with the token in the Authorization header"
+      ],
+      "expectedResult": "API responds with 200 OK and the requested resource data."
+    },
+    {
+      "id": "API-TC-002",
+      "category": "Auth Token Validation",
+      "title": "API request with a missing auth token is rejected",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "GET /api/v1/test-runs",
+        "authHeader": null
+      },
+      "steps": ["Send a GET request to a protected endpoint without an Authorization header"],
+      "expectedResult": "API responds with 401 Unauthorized and a clear error message; no protected data is returned."
+    },
+    {
+      "id": "API-TC-003",
+      "category": "Auth Token Validation",
+      "title": "API request with an expired token is rejected",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["An expired access token is available (previously valid, now past expiry)"],
+      "testData": {
+        "authHeader": "Bearer <expired_token>"
+      },
+      "steps": [
+        "Obtain an expired token (or wait for a short-lived token to expire)",
+        "Send a request to a protected endpoint using the expired token"
+      ],
+      "expectedResult": "API responds with 401 Unauthorized; error body indicates the token has expired (e.g., 'token_expired')."
+    },
+    {
+      "id": "API-TC-004",
+      "category": "Auth Token Validation",
+      "title": "API request with a malformed or tampered token is rejected",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": [],
+      "testData": {
+        "authHeader": "Bearer invalid.tampered.token"
+      },
+      "steps": [
+        "Construct a malformed token (invalid JWT structure) or tamper with a valid token's payload/signature",
+        "Send a request to a protected endpoint using this token"
+      ],
+      "expectedResult": "API responds with 401 Unauthorized; signature/format validation fails safely without exposing stack traces or internal errors."
+    },
+    {
+      "id": "API-TC-005",
+      "category": "Auth Token Validation",
+      "title": "Refresh token successfully issues a new valid access token",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["User has a valid refresh token"],
+      "testData": {
+        "endpoint": "POST /api/v1/auth/refresh",
+        "refreshToken": "<valid_refresh_token>"
+      },
+      "steps": [
+        "Send a refresh request with a valid refresh token",
+        "Verify the response contains a new access token"
+      ],
+      "expectedResult": "API responds with 200 OK and issues a new valid access token (and optionally a new refresh token); old access token behavior follows the app's defined rotation policy."
+    },
+    {
+      "id": "API-TC-006",
+      "category": "Auth Token Validation",
+      "title": "Revoked/logged-out token is rejected on subsequent requests",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["User has logged out or explicitly revoked their token"],
+      "testData": {
+        "authHeader": "Bearer <revoked_token>"
+      },
+      "steps": [
+        "Authenticate and obtain a valid token",
+        "Log out (or call a token-revocation endpoint)",
+        "Attempt to use the same token on a protected endpoint"
+      ],
+      "expectedResult": "API responds with 401 Unauthorized; revoked token cannot be reused even though it hasn't naturally expired."
+    },
+    {
+      "id": "API-TC-007",
+      "category": "Auth Token Validation",
+      "title": "Token issued for one user cannot access another user's scoped resources",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["Two distinct user accounts exist, each with their own resources"],
+      "testData": {
+        "userA_token": "<valid_token_for_userA>",
+        "userB_resource_id": "resource_owned_by_userB"
+      },
+      "steps": [
+        "Authenticate as User A and obtain a valid token",
+        "Attempt to access or modify a resource owned exclusively by User B using User A's token"
+      ],
+      "expectedResult": "API responds with 403 Forbidden (or 404, per app convention); no cross-user data leakage or modification occurs (broken object-level authorization check)."
+    },
+    {
+      "id": "API-TC-008",
+      "category": "CRUD Operations",
+      "title": "Create (POST) a new resource with valid payload succeeds",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["User is authenticated with permission to create the resource"],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "body": {
+          "title": "Verify login with valid credentials",
+          "module": "Login",
+          "priority": "P1"
+        }
+      },
+      "steps": ["Send a POST request with a complete, valid payload", "Inspect the response"],
+      "expectedResult": "API responds with 201 Created; response body includes the newly created resource with a generated ID; resource is retrievable via a subsequent GET."
+    },
+    {
+      "id": "API-TC-009",
+      "category": "CRUD Operations",
+      "title": "Read (GET) an existing resource by ID returns correct data",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["A resource with a known ID exists"],
+      "testData": {
+        "endpoint": "GET /api/v1/test-cases/{id}"
+      },
+      "steps": ["Send a GET request using the ID of a known, existing resource"],
+      "expectedResult": "API responds with 200 OK and a response body accurately reflecting the resource's current state."
+    },
+    {
+      "id": "API-TC-010",
+      "category": "CRUD Operations",
+      "title": "Read (GET) a list endpoint supports pagination correctly",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["More records exist than fit on a single page"],
+      "testData": {
+        "endpoint": "GET /api/v1/test-cases?page=2&limit=20"
+      },
+      "steps": [
+        "Send a GET request for a list endpoint with page and limit query parameters",
+        "Verify the returned page of results and metadata (total count, next/prev page)"
+      ],
+      "expectedResult": "API returns the correct subset of records for the requested page along with accurate pagination metadata; no duplicate or skipped records across pages."
+    },
+    {
+      "id": "API-TC-011",
+      "category": "CRUD Operations",
+      "title": "Update (PUT/PATCH) an existing resource with valid data succeeds",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["A resource with a known ID exists"],
+      "testData": {
+        "endpoint": "PATCH /api/v1/test-cases/{id}",
+        "body": { "priority": "P2" }
+      },
+      "steps": [
+        "Send a PATCH request to update one or more fields of an existing resource",
+        "Send a GET request to verify persistence"
+      ],
+      "expectedResult": "API responds with 200 OK and the updated resource; only the specified fields change (partial update via PATCH); GET confirms the change persisted."
+    },
+    {
+      "id": "API-TC-012",
+      "category": "CRUD Operations",
+      "title": "Update a non-existent resource returns 404",
+      "priority": "P2",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "PATCH /api/v1/test-cases/nonexistent-id",
+        "body": { "priority": "P2" }
+      },
+      "steps": ["Send a PATCH/PUT request using an ID that does not exist"],
+      "expectedResult": "API responds with 404 Not Found; no resource is created as a side effect."
+    },
+    {
+      "id": "API-TC-013",
+      "category": "CRUD Operations",
+      "title": "Delete (DELETE) an existing resource succeeds and resource is no longer retrievable",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["A resource with a known ID exists"],
+      "testData": {
+        "endpoint": "DELETE /api/v1/test-cases/{id}"
+      },
+      "steps": [
+        "Send a DELETE request for an existing resource",
+        "Send a subsequent GET request for the same resource ID"
+      ],
+      "expectedResult": "DELETE responds with 200 OK or 204 No Content; the follow-up GET returns 404 Not Found, confirming removal."
+    },
+    {
+      "id": "API-TC-014",
+      "category": "CRUD Operations",
+      "title": "Deleting an already-deleted resource is handled gracefully (idempotency)",
+      "priority": "P3",
+      "type": "Edge Case",
+      "preconditions": ["A resource has already been deleted"],
+      "testData": {
+        "endpoint": "DELETE /api/v1/test-cases/{already_deleted_id}"
+      },
+      "steps": ["Delete a resource", "Send the same DELETE request again for the same resource ID"],
+      "expectedResult": "API responds with 404 Not Found (or 204, per idempotency design) without throwing a server error (5xx)."
+    },
+    {
+      "id": "API-TC-015",
+      "category": "CRUD Operations",
+      "title": "Create resource with missing required fields is rejected",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "body": { "module": "Login" }
+      },
+      "steps": ["Send a POST request omitting a required field (e.g., 'title')"],
+      "expectedResult": "API responds with 400 Bad Request; response body clearly identifies the missing/invalid field(s); no partial resource is created."
+    },
+    {
+      "id": "API-TC-016",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Requesting a non-existent resource returns 404 with a structured error body",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "GET /api/v1/test-cases/does-not-exist"
+      },
+      "steps": ["Send a GET request for a resource ID that does not exist"],
+      "expectedResult": "API responds with 404 Not Found; body follows a consistent error schema (e.g., { error, message, statusCode }) rather than an empty body or stack trace."
+    },
+    {
+      "id": "API-TC-017",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Sending malformed JSON in the request body returns 400",
+      "priority": "P2",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "rawBody": "{ title: 'missing quotes' "
+      },
+      "steps": ["Send a POST request with syntactically invalid JSON in the body"],
+      "expectedResult": "API responds with 400 Bad Request and a parse-error message; server does not crash or return a 500."
+    },
+    {
+      "id": "API-TC-018",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Using an unsupported HTTP method on a valid endpoint returns 405",
+      "priority": "P3",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "PATCH /api/v1/auth/login"
+      },
+      "steps": [
+        "Send a request using an HTTP method not supported by the endpoint (e.g., PATCH on a login endpoint that only supports POST)"
+      ],
+      "expectedResult": "API responds with 405 Method Not Allowed and, ideally, an 'Allow' header listing supported methods."
+    },
+    {
+      "id": "API-TC-019",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Accessing a resource without sufficient permissions returns 403, not 500",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["Authenticated user lacks permission for the target resource/action"],
+      "testData": {
+        "endpoint": "DELETE /api/v1/admin/users/{id}",
+        "role": "Viewer"
+      },
+      "steps": [
+        "Authenticate as a user without admin privileges",
+        "Attempt an admin-only action (e.g., delete another user)"
+      ],
+      "expectedResult": "API responds with 403 Forbidden and a clear message; server does not throw an unhandled exception (500)."
+    },
+    {
+      "id": "API-TC-020",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Unexpected server-side failure returns a generic 500 without leaking internals",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["A backend dependency (e.g., database) can be simulated as unavailable"],
+      "testData": {
+        "condition": "database connection failure (simulated/mocked)"
+      },
+      "steps": [
+        "Simulate an internal failure (e.g., mock the database/service to throw an error)",
+        "Send a valid request that depends on the failing component"
+      ],
+      "expectedResult": "API responds with 500 Internal Server Error and a generic, non-revealing error message; no stack trace, SQL, or internal file paths are exposed in the response."
+    },
+    {
+      "id": "API-TC-021",
+      "category": "Error Handling (4xx/5xx)",
+      "title": "Error responses follow a consistent schema across all endpoints",
+      "priority": "P2",
+      "type": "Consistency",
+      "preconditions": [],
+      "testData": {
+        "endpoints": [
+          "/api/v1/test-cases/invalid-id",
+          "/api/v1/test-runs (POST with missing fields)",
+          "/api/v1/auth/login (bad credentials)"
+        ]
+      },
+      "steps": [
+        "Trigger error responses (4xx) across multiple different endpoints",
+        "Compare the structure/shape of each error response body"
+      ],
+      "expectedResult": "All error responses share a consistent JSON schema (e.g., consistent keys for error code, message, and details), simplifying client-side error handling."
+    },
+    {
+      "id": "API-TC-022",
+      "category": "Rate Limiting",
+      "title": "Requests within the allowed rate limit succeed normally",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Rate limit is configured (e.g., 100 requests/minute per token)"],
+      "testData": {
+        "requestCount": 50,
+        "windowSeconds": 60
+      },
+      "steps": [
+        "Send a number of requests below the configured rate limit threshold within the time window"
+      ],
+      "expectedResult": "All requests succeed with their normal expected status codes; rate-limit headers (if present) show remaining quota decreasing correctly."
+    },
+    {
+      "id": "API-TC-023",
+      "category": "Rate Limiting",
+      "title": "Exceeding the rate limit returns 429 Too Many Requests",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["Rate limit is configured (e.g., 100 requests/minute per token)"],
+      "testData": {
+        "requestCount": 101,
+        "windowSeconds": 60
+      },
+      "steps": [
+        "Rapidly send requests exceeding the configured threshold within the time window",
+        "Observe the response once the limit is crossed"
+      ],
+      "expectedResult": "API responds with 429 Too Many Requests once the threshold is exceeded; response includes a Retry-After header or equivalent indicating when to retry."
+    },
+    {
+      "id": "API-TC-024",
+      "category": "Rate Limiting",
+      "title": "Rate limit resets correctly after the time window elapses",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["Client has been rate-limited (429 received)"],
+      "testData": {
+        "waitSeconds": 60
+      },
+      "steps": [
+        "Exceed the rate limit to trigger a 429 response",
+        "Wait for the configured rate-limit window to fully elapse",
+        "Send another request"
+      ],
+      "expectedResult": "Request succeeds normally after the window resets; quota counters reflect a fresh window."
+    },
+    {
+      "id": "API-TC-025",
+      "category": "Rate Limiting",
+      "title": "Rate limiting is applied per client/token, not globally across all users",
+      "priority": "P2",
+      "type": "Positive/Security",
+      "preconditions": ["Two distinct authenticated clients/tokens are available"],
+      "testData": {
+        "clientA_requests": 100,
+        "clientB_requests": 1
+      },
+      "steps": [
+        "Exhaust Client A's rate limit by sending requests up to the threshold",
+        "Immediately send a request as Client B using a different token"
+      ],
+      "expectedResult": "Client B's request succeeds normally; Client A's rate limiting does not affect Client B (limits are scoped per token/user/IP as designed)."
+    },
+    {
+      "id": "API-TC-026",
+      "category": "Schema Validation",
+      "title": "Successful response body conforms to the documented/expected JSON schema",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["OpenAPI/JSON schema definition exists for the endpoint"],
+      "testData": {
+        "endpoint": "GET /api/v1/test-cases/{id}",
+        "schema": "TestCase schema (id: string, title: string, module: string, priority: enum, createdAt: date-time)"
+      },
+      "steps": [
+        "Send a valid GET request to the endpoint",
+        "Validate the response body against the defined JSON schema (types, required fields, formats)"
+      ],
+      "expectedResult": "Response body passes schema validation with no missing required fields, incorrect types, or unexpected extra fields (per schema strictness policy)."
+    },
+    {
+      "id": "API-TC-027",
+      "category": "Schema Validation",
+      "title": "Request payload with an incorrect data type for a field is rejected",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "body": { "title": "Test", "priority": 12345 }
+      },
+      "steps": [
+        "Send a POST request where a field's value has an incorrect data type (e.g., number instead of enum string for 'priority')"
+      ],
+      "expectedResult": "API responds with 400 Bad Request; validation error clearly identifies the field and expected type."
+    },
+    {
+      "id": "API-TC-028",
+      "category": "Schema Validation",
+      "title": "Response field types remain consistent across repeated calls and different data states",
+      "priority": "P2",
+      "type": "Consistency",
+      "preconditions": [
+        "Multiple resource instances exist with varying field values (including nulls/empty states)"
+      ],
+      "testData": {
+        "endpoint": "GET /api/v1/test-cases"
+      },
+      "steps": [
+        "Call the list endpoint multiple times across records with different states (e.g., a record with an empty description vs. one with a full description)",
+        "Validate that field types never shift (e.g., a field is never string in one record and null-as-number in another) against the schema"
+      ],
+      "expectedResult": "All records conform to the same schema and types consistently, including correct handling of optional/nullable fields."
+    },
+    {
+      "id": "API-TC-029",
+      "category": "Schema Validation",
+      "title": "Enum fields only accept defined values and reject arbitrary strings",
+      "priority": "P2",
+      "type": "Negative",
+      "preconditions": ["A field is constrained to a defined enum (e.g., priority: P1/P2/P3)"],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "body": { "title": "Test", "priority": "URGENT_ASAP" }
+      },
+      "steps": [
+        "Send a POST/PATCH request with an enum field set to a value outside the defined allowed set"
+      ],
+      "expectedResult": "API responds with 400 Bad Request, rejecting the invalid enum value; error message lists the allowed values."
+    },
+    {
+      "id": "API-TC-030",
+      "category": "Schema Validation",
+      "title": "API rejects unexpected/extra fields in the request payload per the app's strictness policy",
+      "priority": "P3",
+      "type": "Edge Case",
+      "preconditions": [
+        "API is configured to either strictly reject or safely ignore unknown fields"
+      ],
+      "testData": {
+        "endpoint": "POST /api/v1/test-cases",
+        "body": { "title": "Test", "module": "Login", "unexpectedField": "hacked" }
+      },
+      "steps": [
+        "Send a POST request including a field not defined in the schema",
+        "Observe API behavior"
+      ],
+      "expectedResult": "API either rejects the request with 400 (strict mode) or safely ignores the unknown field without persisting or reflecting it (lenient mode) — per the documented contract; behavior is consistent, not undefined."
+    }
+  ]
+}

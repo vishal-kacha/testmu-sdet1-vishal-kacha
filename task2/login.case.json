@@ -1,0 +1,386 @@
+{
+  "module": "Login",
+  "generatedBy": "LLM-assisted (see prompts.md for exact prompts used)",
+  "testCases": [
+    {
+      "id": "LOGIN-TC-001",
+      "category": "Valid Login",
+      "title": "Successful login with correct username and password",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["A registered, active user account exists", "User is on the Login page"],
+      "testData": {
+        "username": "valid_user@example.com",
+        "password": "ValidPass123!"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter a valid, registered username/email",
+        "Enter the correct matching password",
+        "Click the 'Login' button"
+      ],
+      "expectedResult": "User is authenticated and redirected to the Dashboard; a valid session token/cookie is issued.",
+      "postconditions": "User session is active."
+    },
+    {
+      "id": "LOGIN-TC-002",
+      "category": "Valid Login",
+      "title": "Successful login with 'Remember Me' checked",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["A registered, active user account exists"],
+      "testData": {
+        "username": "valid_user@example.com",
+        "password": "ValidPass123!",
+        "rememberMe": true
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter valid credentials",
+        "Check the 'Remember Me' checkbox",
+        "Click 'Login'",
+        "Close and reopen the browser"
+      ],
+      "expectedResult": "User remains logged in on browser reopen; a persistent session/token is stored with an extended expiry."
+    },
+    {
+      "id": "LOGIN-TC-003",
+      "category": "Valid Login",
+      "title": "Login is case-insensitive for username/email field",
+      "priority": "P3",
+      "type": "Positive",
+      "preconditions": ["A registered account exists with email 'User@Example.com'"],
+      "testData": {
+        "username": "USER@EXAMPLE.COM",
+        "password": "ValidPass123!"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter the email in a different case than registered",
+        "Enter the correct password",
+        "Click 'Login'"
+      ],
+      "expectedResult": "Login succeeds; email matching is case-insensitive (per application's defined behavior)."
+    },
+    {
+      "id": "LOGIN-TC-004",
+      "category": "Invalid Credentials",
+      "title": "Login fails with incorrect password",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["A registered account exists"],
+      "testData": {
+        "username": "valid_user@example.com",
+        "password": "WrongPass999!"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter a valid username",
+        "Enter an incorrect password",
+        "Click 'Login'"
+      ],
+      "expectedResult": "Login is rejected; a generic error message is shown (e.g., 'Invalid username or password'); no session is created.",
+      "notes": "Error message must not reveal whether the username or password was the incorrect field (security best practice)."
+    },
+    {
+      "id": "LOGIN-TC-005",
+      "category": "Invalid Credentials",
+      "title": "Login fails with non-existent username",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["Username is not registered in the system"],
+      "testData": {
+        "username": "doesnotexist@example.com",
+        "password": "AnyPass123!"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter an unregistered username",
+        "Enter any password",
+        "Click 'Login'"
+      ],
+      "expectedResult": "Login is rejected with the same generic error message as an incorrect password (no user enumeration)."
+    },
+    {
+      "id": "LOGIN-TC-006",
+      "category": "Invalid Credentials",
+      "title": "Login fails with empty username and/or password fields",
+      "priority": "P2",
+      "type": "Negative",
+      "preconditions": ["User is on the Login page"],
+      "testData": {
+        "username": "",
+        "password": ""
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Leave username and password fields empty",
+        "Click 'Login'"
+      ],
+      "expectedResult": "Client-side and/or server-side validation blocks submission; required-field error messages are displayed."
+    },
+    {
+      "id": "LOGIN-TC-007",
+      "category": "Invalid Credentials",
+      "title": "Login rejects SQL injection / script injection attempts in credential fields",
+      "priority": "P1",
+      "type": "Security/Negative",
+      "preconditions": ["User is on the Login page"],
+      "testData": {
+        "username": "' OR '1'='1",
+        "password": "<script>alert(1)</script>"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter SQL/script injection payloads into username and password",
+        "Click 'Login'"
+      ],
+      "expectedResult": "Input is safely sanitized/escaped; login fails normally; no script executes and no database error is exposed."
+    },
+    {
+      "id": "LOGIN-TC-008",
+      "category": "Forgot Password",
+      "title": "User can request a password reset with a registered email",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["A registered account exists"],
+      "testData": {
+        "email": "valid_user@example.com"
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Click 'Forgot Password'",
+        "Enter a registered email address",
+        "Submit the request"
+      ],
+      "expectedResult": "A password reset email is sent to the address containing a valid, time-limited reset link/token; confirmation message is shown to the user."
+    },
+    {
+      "id": "LOGIN-TC-009",
+      "category": "Forgot Password",
+      "title": "Forgot password request with unregistered email shows neutral confirmation",
+      "priority": "P2",
+      "type": "Negative/Security",
+      "preconditions": ["Email is not registered"],
+      "testData": {
+        "email": "unknown@example.com"
+      },
+      "steps": [
+        "Navigate to the Forgot Password page",
+        "Enter an email not associated with any account",
+        "Submit the request"
+      ],
+      "expectedResult": "System shows the same generic confirmation message as a valid request (e.g., 'If an account exists, a reset link has been sent') without revealing whether the account exists."
+    },
+    {
+      "id": "LOGIN-TC-010",
+      "category": "Forgot Password",
+      "title": "Password reset link expires after configured time window",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [
+        "A valid reset link was generated more than the expiry window ago (e.g., >30 min)"
+      ],
+      "testData": {
+        "resetToken": "expired_token_abc123"
+      },
+      "steps": [
+        "Request a password reset and obtain the reset link",
+        "Wait until the token expiry window has passed",
+        "Click the expired reset link",
+        "Attempt to set a new password"
+      ],
+      "expectedResult": "System rejects the expired token, displays an appropriate error, and prompts the user to request a new reset link."
+    },
+    {
+      "id": "LOGIN-TC-011",
+      "category": "Forgot Password",
+      "title": "Reset link/token can only be used once",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["A valid, unused reset link exists"],
+      "testData": {
+        "resetToken": "valid_single_use_token"
+      },
+      "steps": [
+        "Use the reset link to successfully change the password",
+        "Attempt to reuse the same reset link again"
+      ],
+      "expectedResult": "Second attempt is rejected with an 'invalid or expired token' error; token is invalidated after first use."
+    },
+    {
+      "id": "LOGIN-TC-012",
+      "category": "Forgot Password",
+      "title": "New password must meet complexity requirements during reset",
+      "priority": "P2",
+      "type": "Negative",
+      "preconditions": ["User has clicked a valid reset link"],
+      "testData": {
+        "newPassword": "123"
+      },
+      "steps": [
+        "Open a valid password reset link",
+        "Enter a weak password (e.g., too short, no special character)",
+        "Submit the new password"
+      ],
+      "expectedResult": "System rejects the weak password and displays password policy requirements; password is not updated."
+    },
+    {
+      "id": "LOGIN-TC-013",
+      "category": "Session Expiry",
+      "title": "User is logged out automatically after session timeout due to inactivity",
+      "priority": "P1",
+      "type": "Negative/Functional",
+      "preconditions": [
+        "User is logged in",
+        "Session timeout is configured (e.g., 15 minutes of inactivity)"
+      ],
+      "testData": {
+        "inactivityPeriod": "16 minutes"
+      },
+      "steps": [
+        "Log in successfully",
+        "Remain inactive (no clicks, requests) for longer than the session timeout period",
+        "Attempt to perform an action or refresh the page"
+      ],
+      "expectedResult": "User is redirected to the login page with a 'Session expired, please log in again' message; the expired session token is invalidated server-side."
+    },
+    {
+      "id": "LOGIN-TC-014",
+      "category": "Session Expiry",
+      "title": "Expired session token is rejected on API calls",
+      "priority": "P1",
+      "type": "Negative/API",
+      "preconditions": ["User has an expired session/JWT token"],
+      "testData": {
+        "authHeader": "Bearer <expired_token>"
+      },
+      "steps": [
+        "Obtain an expired auth token",
+        "Send an API request to a protected endpoint using the expired token"
+      ],
+      "expectedResult": "API responds with 401 Unauthorized; response body indicates token expiry; no protected data is returned."
+    },
+    {
+      "id": "LOGIN-TC-015",
+      "category": "Session Expiry",
+      "title": "Session remains active during continuous user activity",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["User is logged in", "Session timeout is configured"],
+      "testData": {},
+      "steps": [
+        "Log in successfully",
+        "Perform an action (click/navigate) at intervals shorter than the timeout window, repeated across multiple cycles"
+      ],
+      "expectedResult": "Session stays active and is not terminated as long as activity continues before each timeout window elapses."
+    },
+    {
+      "id": "LOGIN-TC-016",
+      "category": "Session Expiry",
+      "title": "Manually logging out invalidates the session immediately",
+      "priority": "P1",
+      "type": "Positive/Security",
+      "preconditions": ["User is logged in"],
+      "testData": {},
+      "steps": [
+        "Log in successfully",
+        "Click 'Logout'",
+        "Attempt to navigate back using the browser back button or reuse the old session token"
+      ],
+      "expectedResult": "User is redirected to the login page; the old session token is invalidated and cannot be reused to access protected pages/APIs."
+    },
+    {
+      "id": "LOGIN-TC-017",
+      "category": "Brute-Force Lockout",
+      "title": "Account is locked after N consecutive failed login attempts",
+      "priority": "P1",
+      "type": "Security/Negative",
+      "preconditions": [
+        "A registered account exists",
+        "Lockout threshold is configured (e.g., 5 failed attempts)"
+      ],
+      "testData": {
+        "username": "valid_user@example.com",
+        "password": "WrongPassword",
+        "attempts": 5
+      },
+      "steps": [
+        "Navigate to the login page",
+        "Enter the correct username with an incorrect password",
+        "Repeat the failed login attempt until the configured threshold is reached (e.g., 5 times)"
+      ],
+      "expectedResult": "After the threshold is reached, the account is locked; further login attempts (even with correct credentials) are rejected with a lockout message."
+    },
+    {
+      "id": "LOGIN-TC-018",
+      "category": "Brute-Force Lockout",
+      "title": "Locked account cannot log in even with correct credentials",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": ["Account has already been locked due to prior failed attempts"],
+      "testData": {
+        "username": "valid_user@example.com",
+        "password": "ValidPass123!"
+      },
+      "steps": [
+        "Ensure the target account is in a locked state",
+        "Attempt to log in using the correct, valid credentials"
+      ],
+      "expectedResult": "Login is rejected with a message indicating the account is temporarily locked; correct credentials do not bypass the lockout."
+    },
+    {
+      "id": "LOGIN-TC-019",
+      "category": "Brute-Force Lockout",
+      "title": "Account automatically unlocks after the configured lockout duration",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["Account is locked", "Lockout duration is configured (e.g., 30 minutes)"],
+      "testData": {
+        "lockoutDuration": "30 minutes"
+      },
+      "steps": [
+        "Trigger account lockout via repeated failed attempts",
+        "Wait until the lockout duration has elapsed",
+        "Attempt to log in with correct credentials"
+      ],
+      "expectedResult": "Login succeeds after the lockout window expires, confirming automatic unlock."
+    },
+    {
+      "id": "LOGIN-TC-020",
+      "category": "Brute-Force Lockout",
+      "title": "Failed attempt counter resets after a successful login",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["Account has some failed attempts below the lockout threshold"],
+      "testData": {
+        "failedAttemptsBeforeSuccess": 3
+      },
+      "steps": [
+        "Perform fewer failed login attempts than the lockout threshold (e.g., 3 out of 5)",
+        "Log in successfully with correct credentials",
+        "Perform failed login attempts again and verify the counter started fresh from zero"
+      ],
+      "expectedResult": "Successful login resets the failed attempt counter; account is not locked prematurely on the next round of failures."
+    },
+    {
+      "id": "LOGIN-TC-021",
+      "category": "Brute-Force Lockout",
+      "title": "Rate limiting / CAPTCHA is triggered after repeated failed attempts from the same IP",
+      "priority": "P2",
+      "type": "Security",
+      "preconditions": [
+        "Multiple failed login attempts originate from the same IP/client across one or more accounts"
+      ],
+      "testData": {
+        "ip": "single_source_ip",
+        "attempts": 10
+      },
+      "steps": [
+        "Send repeated failed login requests rapidly from the same IP address, potentially across different usernames",
+        "Observe system response after the configured threshold"
+      ],
+      "expectedResult": "System applies rate limiting, throttling, or CAPTCHA challenge to the offending IP/client to mitigate brute-force/credential-stuffing attacks."
+    }
+  ]
+}

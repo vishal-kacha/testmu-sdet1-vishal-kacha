@@ -1,0 +1,433 @@
+{
+  "module": "Dashboard",
+  "generatedBy": "LLM-assisted (see prompts.md for exact prompts used)",
+  "testCases": [
+    {
+      "id": "DASH-TC-001",
+      "category": "Widget Loading",
+      "title": "All dashboard widgets load successfully on initial page load",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": [
+        "User is logged in with a valid session",
+        "User has at least one widget configured on their dashboard"
+      ],
+      "testData": {},
+      "steps": [
+        "Log in and navigate to the Dashboard page",
+        "Observe all configured widgets as the page loads"
+      ],
+      "expectedResult": "Every widget renders without error within an acceptable time threshold (e.g., <3s); no widget is stuck in a perpetual loading state."
+    },
+    {
+      "id": "DASH-TC-002",
+      "category": "Widget Loading",
+      "title": "Widget displays a loading skeleton/spinner while data is being fetched",
+      "priority": "P2",
+      "type": "Positive/UI",
+      "preconditions": [
+        "Dashboard is being loaded",
+        "Network throttling is simulated (slow 3G or delayed API response)"
+      ],
+      "testData": {
+        "networkCondition": "throttled"
+      },
+      "steps": [
+        "Throttle network speed or delay the widget data API response",
+        "Load the Dashboard page",
+        "Observe widget state before data arrives"
+      ],
+      "expectedResult": "A loading skeleton, spinner, or placeholder is shown for each widget until its data resolves; layout does not shift abruptly once loaded (no content jump)."
+    },
+    {
+      "id": "DASH-TC-003",
+      "category": "Widget Loading",
+      "title": "Widget shows a graceful error state when its data API call fails",
+      "priority": "P1",
+      "type": "Negative",
+      "preconditions": [
+        "Dashboard is loading",
+        "Backend API for a specific widget returns 500/timeout"
+      ],
+      "testData": {
+        "widgetApiResponse": "500 Internal Server Error"
+      },
+      "steps": [
+        "Simulate a failing API response for one widget's data source",
+        "Load the Dashboard page",
+        "Observe the affected widget"
+      ],
+      "expectedResult": "The failed widget displays a clear error message and optional retry action; other widgets on the dashboard continue to load and function normally (isolated failure)."
+    },
+    {
+      "id": "DASH-TC-004",
+      "category": "Widget Loading",
+      "title": "Widgets load correctly when a user has zero configured widgets",
+      "priority": "P3",
+      "type": "Edge Case",
+      "preconditions": ["User account has no widgets added to the dashboard"],
+      "testData": {},
+      "steps": [
+        "Log in as a user with an empty dashboard configuration",
+        "Navigate to the Dashboard page"
+      ],
+      "expectedResult": "An empty-state message is displayed (e.g., 'No widgets added yet') with a call-to-action to add widgets, instead of a blank or broken page."
+    },
+    {
+      "id": "DASH-TC-005",
+      "category": "Widget Loading",
+      "title": "Widget load time remains within SLA under a large number of widgets",
+      "priority": "P2",
+      "type": "Performance",
+      "preconditions": ["User has the maximum supported number of widgets configured (e.g., 20+)"],
+      "testData": {
+        "widgetCount": 20
+      },
+      "steps": [
+        "Configure the dashboard with the maximum allowed number of widgets",
+        "Load the Dashboard page and measure total load time"
+      ],
+      "expectedResult": "All widgets load within the defined performance SLA; page remains responsive (no UI freeze) during concurrent widget data fetches."
+    },
+    {
+      "id": "DASH-TC-006",
+      "category": "Data Accuracy",
+      "title": "Widget displays data that matches the underlying source of truth",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Known test data exists in the backend/database"],
+      "testData": {
+        "expectedValue": "matches seeded backend record"
+      },
+      "steps": [
+        "Seed or identify known data in the backend for a given widget (e.g., number of open test runs)",
+        "Load the Dashboard and locate the corresponding widget",
+        "Compare the widget's displayed value against the backend/API value directly"
+      ],
+      "expectedResult": "The value shown in the widget exactly matches the value returned by the underlying API/database, with correct formatting (numbers, dates, currency, etc.)."
+    },
+    {
+      "id": "DASH-TC-007",
+      "category": "Data Accuracy",
+      "title": "Widget data updates after underlying data changes (refresh or real-time)",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Dashboard is loaded and displaying current data"],
+      "testData": {
+        "action": "create/update/delete a record affecting widget data"
+      },
+      "steps": [
+        "Note the current value shown in a widget (e.g., 'Total Test Cases: 50')",
+        "Perform an action elsewhere in the app that changes the underlying data (e.g., add a new test case)",
+        "Refresh the dashboard or wait for auto-refresh/real-time update"
+      ],
+      "expectedResult": "The widget reflects the updated value accurately after refresh (or automatically, if real-time updates are supported)."
+    },
+    {
+      "id": "DASH-TC-008",
+      "category": "Data Accuracy",
+      "title": "Widget aggregation/calculations (sums, averages, percentages) are mathematically correct",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Widget performs an aggregate calculation (e.g., pass rate %)"],
+      "testData": {
+        "passed": 80,
+        "total": 100,
+        "expectedPassRate": "80%"
+      },
+      "steps": [
+        "Seed data with a known set of pass/fail counts",
+        "Load the widget showing the aggregated metric (e.g., Pass Rate)",
+        "Manually calculate the expected result and compare"
+      ],
+      "expectedResult": "Displayed aggregate value is mathematically accurate and correctly rounded/formatted."
+    },
+    {
+      "id": "DASH-TC-009",
+      "category": "Data Accuracy",
+      "title": "Widget correctly handles and displays zero or null data without errors",
+      "priority": "P2",
+      "type": "Edge Case",
+      "preconditions": [
+        "Underlying data source returns zero records or null values for the widget"
+      ],
+      "testData": {
+        "value": null
+      },
+      "steps": [
+        "Ensure the widget's data source has no records (e.g., a new project with zero test runs)",
+        "Load the Dashboard and observe the widget"
+      ],
+      "expectedResult": "Widget displays a sensible default (e.g., '0' or 'No data available') rather than 'NaN', 'undefined', or a broken chart."
+    },
+    {
+      "id": "DASH-TC-010",
+      "category": "Data Accuracy",
+      "title": "Widget data respects the selected date range/time period filter",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": [
+        "Widget supports a date range selector",
+        "Known data exists across multiple time periods"
+      ],
+      "testData": {
+        "dateRange": "Last 7 days"
+      },
+      "steps": [
+        "Select a specific date range on a time-bound widget",
+        "Verify displayed data only reflects records within that range by cross-checking against the API/database"
+      ],
+      "expectedResult": "Widget data is scoped exactly to the selected date range; no data from outside the range is included."
+    },
+    {
+      "id": "DASH-TC-011",
+      "category": "Filter/Sort Behavior",
+      "title": "Applying a single filter correctly narrows displayed data",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Dashboard/widget contains a filterable data set with mixed values"],
+      "testData": {
+        "filter": "status = 'Failed'"
+      },
+      "steps": [
+        "Open the filter panel on a data widget/table",
+        "Apply a filter for a specific value (e.g., Status = Failed)",
+        "Observe the resulting data set"
+      ],
+      "expectedResult": "Only records matching the filter criteria are displayed; record count/summary updates accordingly."
+    },
+    {
+      "id": "DASH-TC-012",
+      "category": "Filter/Sort Behavior",
+      "title": "Applying multiple filters combines them using correct AND/OR logic",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Widget supports multiple simultaneous filters"],
+      "testData": {
+        "filters": ["status = 'Failed'", "module = 'Login'"]
+      },
+      "steps": [
+        "Apply a first filter (e.g., Status = Failed)",
+        "Apply a second filter (e.g., Module = Login)",
+        "Observe the resulting data set"
+      ],
+      "expectedResult": "Displayed data matches all applied filter conditions simultaneously (per the app's defined AND/OR logic); results are a correct subset of the unfiltered data."
+    },
+    {
+      "id": "DASH-TC-013",
+      "category": "Filter/Sort Behavior",
+      "title": "Clearing filters restores the full unfiltered data set",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["One or more filters are currently applied"],
+      "testData": {},
+      "steps": ["Apply one or more filters to a widget", "Click 'Clear Filters' or reset action"],
+      "expectedResult": "All filters are removed and the widget reverts to showing the complete, unfiltered data set."
+    },
+    {
+      "id": "DASH-TC-014",
+      "category": "Filter/Sort Behavior",
+      "title": "Sorting a column in ascending and descending order returns correctly ordered results",
+      "priority": "P1",
+      "type": "Positive",
+      "preconditions": ["Widget/table supports column sorting"],
+      "testData": {
+        "sortColumn": "Last Run Date",
+        "sortOrder": ["asc", "desc"]
+      },
+      "steps": [
+        "Click the sortable column header once (ascending)",
+        "Verify the data order",
+        "Click again (descending)",
+        "Verify the data order reverses correctly"
+      ],
+      "expectedResult": "Data is correctly sorted in ascending order first, then descending order, with proper handling of data type (numeric, alphabetic, date) during comparison."
+    },
+    {
+      "id": "DASH-TC-015",
+      "category": "Filter/Sort Behavior",
+      "title": "Filter and sort settings persist correctly when combined together",
+      "priority": "P2",
+      "type": "Positive",
+      "preconditions": ["Widget supports both filtering and sorting simultaneously"],
+      "testData": {
+        "filter": "module = 'API'",
+        "sort": "priority desc"
+      },
+      "steps": [
+        "Apply a filter to the widget",
+        "Apply a sort on a column while the filter is still active",
+        "Verify results"
+      ],
+      "expectedResult": "The filtered subset of data is displayed in the correctly sorted order; filter and sort do not override or reset one another."
+    },
+    {
+      "id": "DASH-TC-016",
+      "category": "Filter/Sort Behavior",
+      "title": "Filtering with a value that matches no records shows an empty state",
+      "priority": "P3",
+      "type": "Edge Case",
+      "preconditions": ["A filter value exists that matches zero records"],
+      "testData": {
+        "filter": "status = 'NonExistentStatus'"
+      },
+      "steps": ["Apply a filter with a value known to match no records", "Observe the widget"],
+      "expectedResult": "Widget displays a clear 'No results found' / empty state rather than an error or a stale previous result set."
+    },
+    {
+      "id": "DASH-TC-017",
+      "category": "Responsive Layout",
+      "title": "Dashboard layout adapts correctly on desktop, tablet, and mobile viewports",
+      "priority": "P1",
+      "type": "Positive/UI",
+      "preconditions": ["Dashboard is loaded with multiple widgets"],
+      "testData": {
+        "viewports": ["1920x1080", "768x1024", "375x667"]
+      },
+      "steps": [
+        "Load the Dashboard at a desktop resolution (e.g., 1920x1080)",
+        "Resize/re-render at tablet resolution (e.g., 768x1024)",
+        "Resize/re-render at mobile resolution (e.g., 375x667)",
+        "Observe widget layout at each breakpoint"
+      ],
+      "expectedResult": "Widgets reflow into an appropriate grid/stack per breakpoint; no horizontal scrolling, overlapping elements, or cut-off content at any size."
+    },
+    {
+      "id": "DASH-TC-018",
+      "category": "Responsive Layout",
+      "title": "Widgets remain fully readable and usable on small mobile screens",
+      "priority": "P2",
+      "type": "Positive/UI",
+      "preconditions": ["Dashboard is loaded on a mobile-sized viewport"],
+      "testData": {
+        "viewport": "360x640"
+      },
+      "steps": [
+        "Load the Dashboard on a small mobile viewport",
+        "Interact with widget controls (filters, dropdowns, charts)"
+      ],
+      "expectedResult": "Text remains legible without zooming; tappable elements meet minimum touch-target size; charts/tables adapt (e.g., convert to scrollable or simplified view) rather than becoming unusable."
+    },
+    {
+      "id": "DASH-TC-019",
+      "category": "Responsive Layout",
+      "title": "Dashboard supports drag-and-drop widget rearrangement on desktop and gracefully disables/adapts it on touch devices",
+      "priority": "P3",
+      "type": "Positive/UI",
+      "preconditions": ["Dashboard supports customizable widget positions"],
+      "testData": {},
+      "steps": [
+        "On desktop, drag a widget to a new position and verify it persists",
+        "On a touch/mobile viewport, attempt the equivalent rearrangement action"
+      ],
+      "expectedResult": "Desktop drag-and-drop works smoothly and the new layout persists on reload; mobile provides an appropriate alternative (e.g., long-press or a reorder menu) rather than a broken drag interaction."
+    },
+    {
+      "id": "DASH-TC-020",
+      "category": "Responsive Layout",
+      "title": "Dashboard layout handles browser zoom levels without breaking",
+      "priority": "P3",
+      "type": "Edge Case",
+      "preconditions": ["Dashboard is loaded at default zoom"],
+      "testData": {
+        "zoomLevels": ["80%", "100%", "150%"]
+      },
+      "steps": [
+        "Load the Dashboard",
+        "Change browser zoom to 80%, then 150%",
+        "Observe widget layout and text at each zoom level"
+      ],
+      "expectedResult": "Layout remains functional and readable at various zoom levels; no overlapping or clipped content."
+    },
+    {
+      "id": "DASH-TC-021",
+      "category": "Permission-Based Visibility",
+      "title": "Admin user sees all dashboard widgets and administrative controls",
+      "priority": "P1",
+      "type": "Positive/Security",
+      "preconditions": ["User is logged in with an Admin role"],
+      "testData": {
+        "role": "Admin"
+      },
+      "steps": ["Log in as a user with Admin role", "Navigate to the Dashboard"],
+      "expectedResult": "All widgets, including admin-only widgets (e.g., user management, system health, billing), are visible and accessible."
+    },
+    {
+      "id": "DASH-TC-022",
+      "category": "Permission-Based Visibility",
+      "title": "Standard/limited-role user does not see restricted widgets",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["User is logged in with a limited role (e.g., Viewer or Tester)"],
+      "testData": {
+        "role": "Viewer"
+      },
+      "steps": [
+        "Log in as a user with a restricted/limited role",
+        "Navigate to the Dashboard",
+        "Inspect the list of visible widgets"
+      ],
+      "expectedResult": "Widgets requiring elevated permissions are completely hidden (not merely disabled/grayed out) from the UI for this role."
+    },
+    {
+      "id": "DASH-TC-023",
+      "category": "Permission-Based Visibility",
+      "title": "Restricted widget data is not accessible via direct API call for unauthorized roles",
+      "priority": "P1",
+      "type": "Negative/Security",
+      "preconditions": ["User has a role without access to a specific widget's data endpoint"],
+      "testData": {
+        "role": "Viewer",
+        "endpoint": "/api/admin/widget-data"
+      },
+      "steps": [
+        "Authenticate as a limited-role user",
+        "Directly call the API endpoint backing an admin-only widget, bypassing the UI"
+      ],
+      "expectedResult": "API returns 403 Forbidden (not just a UI-level hide); no restricted data is leaked in the response body."
+    },
+    {
+      "id": "DASH-TC-024",
+      "category": "Permission-Based Visibility",
+      "title": "Dashboard updates widget visibility immediately after a user's role/permissions change",
+      "priority": "P2",
+      "type": "Positive/Security",
+      "preconditions": [
+        "User is logged in with a role that lacks access to certain widgets",
+        "Admin changes the user's role/permissions during the session"
+      ],
+      "testData": {
+        "roleBefore": "Viewer",
+        "roleAfter": "Admin"
+      },
+      "steps": [
+        "Log in as a limited-role user and confirm restricted widgets are hidden",
+        "As an admin (separately), upgrade the user's role/permissions",
+        "Refresh the dashboard (or observe real-time update, if supported) for the affected user"
+      ],
+      "expectedResult": "Previously hidden widgets become visible after the permission change is applied and the session/token reflects updated access (no stale cached permissions)."
+    },
+    {
+      "id": "DASH-TC-025",
+      "category": "Permission-Based Visibility",
+      "title": "Project-level or team-level scoping restricts widget data to authorized projects only",
+      "priority": "P2",
+      "type": "Negative/Security",
+      "preconditions": [
+        "User has access to Project A but not Project B",
+        "Both projects have data"
+      ],
+      "testData": {
+        "authorizedProject": "Project A",
+        "unauthorizedProject": "Project B"
+      },
+      "steps": [
+        "Log in as a user scoped only to Project A",
+        "Load the Dashboard",
+        "Verify widget data only reflects Project A",
+        "Attempt to switch context or query data for Project B directly"
+      ],
+      "expectedResult": "Widgets display data only for authorized project(s); any attempt to access Project B's data (via UI or API) is blocked."
+    }
+  ]
+}
