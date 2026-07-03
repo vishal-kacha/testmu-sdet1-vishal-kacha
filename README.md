@@ -22,6 +22,13 @@ or
 npm run test
 ```
 
+
+For Env Add Anthropic API Key
+```bash
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+```
+
 - [Project Setup Details and complete Ai Chat](https://claude.ai/share/367933ef-9b04-423b-93bd-ceae240671a6)
 
 - [Complete Chat Link](https://claude.ai/share/d1d5daf5-0c5a-46c8-a866-7deb64944d8c)
